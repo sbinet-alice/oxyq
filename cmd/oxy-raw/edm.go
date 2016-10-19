@@ -10,6 +10,8 @@ const (
 	EventTriggerPatternBytes  = 16
 	EventDetectorPatternBytes = 4
 	AllAttributeWords         = 3
+
+	Magic = uint32(0xda1e5afe)
 )
 
 type Event struct {
@@ -27,7 +29,7 @@ type EventHeader struct {
 	ID              EventID
 	TriggerPattern  [EventTriggerPatternBytes >> 2]uint32
 	DetectorPattern [EventDetectorPatternBytes >> 2]uint32
-	TypeAttr        [AllAttributeWords]uint32
+	TypeAttr        TypeAttr
 	LDC             int32
 	GDC             int32
 	TimestampSec    uint32
@@ -67,6 +69,24 @@ const (
 	DetectorSoftwareTriggerEvent EventType = 13
 	SyncEvent                    EventType = 14
 )
+
+type TypeAttr [AllAttributeWords]uint32
+
+const (
+	AttrEventSwapped = 66
+	AttrEventPaged   = 67
+	AttrSuperEvent   = 68
+	AttrOrbitBC      = 69
+	AttrKeepPages    = 70
+	AttrHLTDecision  = 71
+)
+
+func (ta TypeAttr) IsSuperEvent() bool {
+	//#define TEST_SYSTEM_ATTRIBUTE(m,b)  (((m)[SYS_ATTR_2_W(b)] & ATTR_2_B(b)) != 0)
+	//#define ATTR_2_B(b)     (1<<((b)&0x1f))
+
+	return ta[2]&(1<<((AttrSuperEvent)&0x1f)) != 0
+}
 
 // type EventID [EventIDBytes >> 2]uint32
 type EventID [2]uint32
@@ -129,4 +149,25 @@ type EventVector struct {
 type Equipment struct {
 	Header EquipmentHeader
 	Raw    [1]uint16
+}
+
+type DataHeader struct {
+	Size              uint32 // size of raw data in bytes
+	Word              uint32 // bunch crossing, L1 trigger message and format version
+	EventID           uint32 // orbit number
+	SubDets           uint32 // block attributes and participating sub-detectors
+	StatusMiniEventID uint32 // status & error bits + mini event ID
+	TriggerClassLow   uint32 // low bits of trigger class
+	ROILo             uint32 // low bits of ROI data
+	ROIHi             uint32 // high bits of ROI data
+}
+
+type DataHeaderV3 struct {
+	Size              uint32 // size of raw data in bytes
+	Word              uint32 // bunch crossing, L1 trigger message and format version
+	EventID           uint32 // orbit number
+	SubDets           uint32 // block attributes and participating sub-detectors
+	StatusMiniEventID uint32 // status & error bits + mini event ID
+	Trigger           [4]uint32
+	ROI               uint32
 }

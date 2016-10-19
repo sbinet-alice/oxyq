@@ -16,7 +16,6 @@ const (
 
 var (
 	endDDL = uint32(0xdeadface)
-	Magic  = uint32(0xda1e5afe)
 )
 
 func main() {
@@ -66,6 +65,9 @@ func main() {
 	bread(f, buf)
 	fmt.Printf("=== tot-len ===\n %v\n", dump(buf))
 	fmt.Printf(">>> %d\n", binary.LittleEndian.Uint32(buf[:]))
+
+	f.Seek(0, 0)
+	testReader(f)
 }
 
 func bread(r io.Reader, data interface{}) {
@@ -85,4 +87,30 @@ func dump(data []byte) string {
 		o = append(o, fmt.Sprintf("%02x%s", v, trail))
 	}
 	return strings.Join(o, " ")
+}
+
+func testReader(f *os.File) {
+	log.Printf("=== test-reader ===\n")
+	r := NewReader(f)
+	for i := 0; r.Scan(); i++ {
+		if r.Err() != nil {
+			break
+		}
+		fmt.Printf("==========================\n")
+		fmt.Printf(">>> evt #%d...\n", i)
+		r.hdr.print()
+		err := r.ReadHeader()
+		if err != nil {
+			log.Fatal(err)
+		}
+		r.evt.print()
+		r.eqp.print()
+	}
+	err := r.Err()
+	if err == io.EOF {
+		err = nil
+	}
+	if err != nil {
+		log.Fatal(err)
+	}
 }
