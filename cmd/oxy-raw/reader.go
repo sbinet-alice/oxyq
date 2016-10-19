@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/binary"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"log"
@@ -124,6 +125,14 @@ func (r *reader) ReadHeader() error {
 		if r.eqp.Size <= 0 {
 			// go to next sub-event if no payload
 			continue
+		}
+
+		if r.buf.Size() > 0 && false {
+			n := r.buf.Len()
+			buf := make([]byte, n)
+			r.buf.Read(buf)
+			fmt.Printf("%s\n", hex.Dump(buf))
+			r.buf.Seek(int64(-n), io.SeekCurrent)
 		}
 
 		// FIXME(sbinet) check require-header

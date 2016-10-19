@@ -11,7 +11,8 @@ const (
 	EventDetectorPatternBytes = 4
 	AllAttributeWords         = 3
 
-	Magic = uint32(0xda1e5afe)
+	Magic  = uint32(0xda1e5afe)
+	endDDL = uint32(0xdeadface)
 )
 
 type Event struct {
