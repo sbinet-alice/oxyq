@@ -5,8 +5,7 @@ import (
 	"flag"
 	"log"
 
-	"github.com/zeromq/gomq"
-	"github.com/zeromq/gomq/zmtp"
+	zmq "github.com/pebbe/zmq4"
 )
 
 func main() {
@@ -18,15 +17,25 @@ func main() {
 
 	flag.Parse()
 
-	isck := gomq.NewClient(zmtp.NewSecurityNull())
+	isck, err := zmq.NewSocket(zmq.PULL)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer isck.Close()
+
 	log.Printf("dialing [%s]...\n", iaddr)
-	err := isck.Connect(iaddr)
+	err = isck.Connect(iaddr)
 	if err != nil {
 		log.Fatal(err)
 	}
 	log.Printf("dialing [%s]...\n", iaddr)
 
-	osck := gomq.NewClient(zmtp.NewSecurityNull())
+	osck, err := zmq.NewSocket(zmq.PUSH)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer osck.Close()
+
 	log.Printf("dialing [%s]...\n", oaddr)
 	err = osck.Connect(oaddr)
 	if err != nil {
@@ -35,14 +44,14 @@ func main() {
 	log.Printf("dialing [%s]...\n", oaddr)
 
 	for {
-		msg, err := isck.Recv()
+		msg, err := isck.RecvBytes(0)
 		if err != nil {
 			log.Fatalf("error recv: %v\n", err)
 		}
 
 		log.Printf("recv: %v\n", string(msg))
 		omsg := bytes.Repeat(msg, 2)
-		err = osck.Send(omsg)
+		_, err = osck.SendBytes(omsg, 0)
 		if err != nil {
 			log.Fatalf("error send: %v\n", err)
 		}

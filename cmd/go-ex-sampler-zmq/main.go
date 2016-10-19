@@ -4,29 +4,31 @@ import (
 	"flag"
 	"log"
 
-	"github.com/zeromq/gomq"
-	"github.com/zeromq/gomq/zmtp"
+	zmq "github.com/pebbe/zmq4"
 )
 
 func main() {
 	var addr string
-	flag.StringVar(&addr, "addr", "tcp://localhost:5555", "output data port")
+	flag.StringVar(&addr, "addr", "tcp://*:5555", "output data port")
 
 	flag.Parse()
 
-	sck := gomq.NewClient(zmtp.NewSecurityNull())
-	defer sck.Close()
-
-	log.Printf("dialing [%s]...\n", addr)
-	err := sck.Connect(addr)
+	sck, err := zmq.NewSocket(zmq.PUSH)
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer sck.Close()
+
 	log.Printf("dialing [%s]...\n", addr)
+	err = sck.Bind(addr)
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Printf("dialing [%s]... [done]\n", addr)
 
 	for {
 		msg := []byte("HELLO")
-		err = sck.Send(msg)
+		_, err = sck.SendBytes(msg, 0)
 		if err != nil {
 			log.Fatalf("error send: %v\n", err)
 		}
