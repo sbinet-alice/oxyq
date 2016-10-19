@@ -26,9 +26,9 @@ func main() {
 	}
 	log.Printf("dialing [%s]...\n", iaddr)
 
-	osck := gomq.NewClient(zmtp.NewSecurityNull())
+	osck := gomq.NewServer(zmtp.NewSecurityNull())
 	log.Printf("dialing [%s]...\n", oaddr)
-	err = osck.Connect(oaddr)
+	_, err = osck.Bind(oaddr)
 	if err != nil {
 		log.Fatal(err)
 	}
