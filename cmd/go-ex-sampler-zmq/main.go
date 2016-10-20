@@ -14,11 +14,11 @@ func main() {
 
 	flag.Parse()
 
-	sck := gomq.NewServer(zmtp.NewSecurityNull())
+	sck := gomq.NewPull(zmtp.NewSecurityNull())
 	defer sck.Close()
 
 	log.Printf("dialing [%s]...\n", addr)
-	_, err := sck.Bind(addr)
+	err := sck.Connect(addr)
 	if err != nil {
 		log.Fatal(err)
 	}

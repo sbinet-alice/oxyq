@@ -14,7 +14,7 @@ func main() {
 
 	flag.Parse()
 
-	sck := gomq.NewClient(zmtp.NewSecurityNull())
+	sck := gomq.NewPull(zmtp.NewSecurityNull())
 	log.Printf("dialing [%s]...\n", addr)
 	err := sck.Connect(addr)
 	if err != nil {
