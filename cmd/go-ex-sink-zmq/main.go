@@ -4,8 +4,7 @@ import (
 	"flag"
 	"log"
 
-	"github.com/zeromq/gomq"
-	"github.com/zeromq/gomq/zmtp"
+	zmq "gopkg.in/zeromq/goczmq.v1"
 )
 
 func main() {
@@ -14,20 +13,20 @@ func main() {
 
 	flag.Parse()
 
-	sck := gomq.NewPull(zmtp.NewSecurityNull())
 	log.Printf("dialing [%s]...\n", addr)
-	err := sck.Connect(addr)
+	sck, err := zmq.NewPull(addr)
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer sck.Destroy()
 	log.Printf("dialing [%s]...\n", addr)
 
 	for {
-		msg, err := sck.Recv()
+		msg, err := sck.RecvMessage()
 		if err != nil {
 			log.Fatalf("error recv: %v\n", err)
 		}
 
-		log.Printf("recv: %v\n", string(msg))
+		log.Printf("recv: %v\n", string(msg[0]))
 	}
 }
