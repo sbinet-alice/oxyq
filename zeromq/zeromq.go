@@ -61,10 +61,10 @@ func (driver) NewSocket(typ oxyq.Type) (oxyq.Socket, error) {
 		sck = gomq.NewPull(m)
 
 	case oxyq.Req, oxyq.Dealer:
-		panic("oxyq/zeromq: oxyq.Req not yet implemented")
+		sck = gomq.NewClient(m)
 
 	case oxyq.Rep, oxyq.Router:
-		panic("oxyq/zeromq: oxyq.Rep not yet implemented")
+		sck = gomq.NewServer(m)
 
 	case oxyq.Pair:
 		panic("oxyq/zeromq: oxyq.Pair not yet implemented")
