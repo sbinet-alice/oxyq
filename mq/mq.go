@@ -7,6 +7,7 @@ package mq
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 )
 
@@ -47,6 +48,36 @@ const (
 	Pair
 	Bus
 )
+
+func SocketTypeFrom(name string) SocketType {
+	switch strings.ToLower(name) {
+	case "sub":
+		return Sub
+	case "pub":
+		return Pub
+	case "xpub":
+		return XPub
+	case "xsub":
+		return XSub
+	case "push":
+		return Push
+	case "pull":
+		return Pull
+	case "req":
+		return Req
+	case "rep":
+		return Rep
+	case "dealer":
+		return Dealer
+	case "router":
+		return Router
+	case "pair":
+		return Pair
+	case "bus":
+		return Bus
+	}
+	panic(fmt.Errorf("oxyq: invalid socket type name (value=%q)", name))
+}
 
 var drivers struct {
 	sync.RWMutex

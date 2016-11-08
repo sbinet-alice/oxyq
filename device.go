@@ -70,7 +70,8 @@ func newChannel(drv mq.Driver, cfg config.Channel) (Channel, error) {
 	if len(cfg.Sockets) != 1 {
 		panic("oxyq: not implemented")
 	}
-	sck, err := drv.NewSocket(socketType(cfg.Sockets[0].Type))
+	typ := mq.SocketTypeFrom(cfg.Sockets[0].Type)
+	sck, err := drv.NewSocket(typ)
 	if err != nil {
 		return ch, err
 	}
