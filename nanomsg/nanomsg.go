@@ -23,7 +23,11 @@ import (
 
 type driver struct{}
 
-func (driver) NewSocket(typ oxyq.Type) (oxyq.Socket, error) {
+func (driver) Name() string {
+	return "nanomsg"
+}
+
+func (driver) NewSocket(typ oxyq.SocketType) (oxyq.Socket, error) {
 	var sck mangos.Socket
 	var err error
 

@@ -7,6 +7,7 @@ package oxyq
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 )
 
@@ -29,22 +30,50 @@ type Socket interface {
 	Dial(addr string) error
 }
 
-type Device struct {
-	chans map[string][]Channel
-}
-
-type Channel struct {
-	sck  Socket
-	cmd  chan CmdType
-	name string
-}
-
+// CmdType describes commands to be sent to a device, via a channel.
 type CmdType byte
 
-type Type int
+const (
+	CmdInitDevice CmdType = iota
+	CmdInitTask
+	CmdRun
+	CmdPause
+	CmdStop
+	CmdResetTask
+	CmdResetDevice
+	CmdEnd
+	CmdError
+)
+
+func (cmd CmdType) String() string {
+	switch cmd {
+	case CmdInitDevice:
+		return "INIT_DEVICE"
+	case CmdInitTask:
+		return "INIT_TASK"
+	case CmdRun:
+		return "RUN"
+	case CmdPause:
+		return "PAUSE"
+	case CmdStop:
+		return "STOP"
+	case CmdResetTask:
+		return "RESET_TASK"
+	case CmdResetDevice:
+		return "RESET_DEVICE"
+	case CmdEnd:
+		return "END"
+	case CmdError:
+		return "ERROR_FOUND"
+	}
+	panic(fmt.Errorf("oxyq: invalid CmdType value (command=%d)", int(cmd)))
+}
+
+// SocketType describes the type of a socket (PUB, SUP, PUSH, PULL, ...)
+type SocketType int
 
 const (
-	Invalid Type = iota
+	Invalid SocketType = iota
 	Sub
 	Pub
 	XSub
@@ -59,11 +88,42 @@ const (
 	Bus
 )
 
+func socketType(name string) SocketType {
+	switch strings.ToLower(name) {
+	case "sub":
+		return Sub
+	case "pub":
+		return Pub
+	case "xpub":
+		return XPub
+	case "xsub":
+		return XSub
+	case "push":
+		return Push
+	case "pull":
+		return Pull
+	case "req":
+		return Req
+	case "rep":
+		return Rep
+	case "dealer":
+		return Dealer
+	case "router":
+		return Router
+	case "pair":
+		return Pair
+	case "bus":
+		return Bus
+	}
+	panic(fmt.Errorf("oxyq: invalid socket type name (value=%q)", name))
+}
+
 var drivers struct {
 	sync.RWMutex
 	db map[string]Driver
 }
 
+// Register registers a new OxyQ driver plugin
 func Register(name string, drv Driver) {
 	drivers.Lock()
 	defer drivers.Unlock()
@@ -73,6 +133,11 @@ func Register(name string, drv Driver) {
 	drivers.db[name] = drv
 }
 
+// Open returns a previously registered driver plugin
+//
+// e.g.
+//  zmq, err := oxyq.Open("zeromq")
+//  nn,  err := oxyq.Open("nanomsg")
 func Open(name string) (Driver, error) {
 	drivers.RLock()
 	defer drivers.RUnlock()
@@ -83,8 +148,10 @@ func Open(name string) (Driver, error) {
 	return drv, nil
 }
 
+// Driver is an OxyQ plugin to create FairMQ-compatible message queue communications
 type Driver interface {
-	NewSocket(typ Type) (Socket, error)
+	NewSocket(typ SocketType) (Socket, error)
+	Name() string
 }
 
 func init() {

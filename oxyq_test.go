@@ -110,7 +110,7 @@ func TestPushPullZMQ(t *testing.T) {
 		}
 	}()
 
-	err = pull.Listen("tcp://localhost:5555")
+	err = pull.Listen("tcp://*:5555")
 	if err != nil {
 		t.Fatal(err)
 	}

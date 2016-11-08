@@ -4,85 +4,147 @@
 
 package zeromq
 
+// #cgo pkg-config: libzmq
+// #include "zmq.h"
+// #include <stdlib.h>
+// #include <string.h>
+import "C"
+
 import (
 	"fmt"
+	"unsafe"
 
 	"github.com/sbinet-alice/oxyq"
-	"github.com/zeromq/gomq"
-	"github.com/zeromq/gomq/zmtp"
 )
 
+func getError(v C.int) error {
+	if v == 0 {
+		return nil
+	}
+	id := C.zmq_errno()
+	msg := C.zmq_strerror(id)
+	return fmt.Errorf(C.GoString(msg))
+}
+
 type socket struct {
-	sck gomq.ZeroMQSocket
+	c unsafe.Pointer
 }
 
 func (s *socket) Close() error {
-	s.sck.Close()
-	return nil
+	return getError(C.zmq_close(s.c))
 }
 
 func (s *socket) Send(data []byte) error {
-	return s.sck.Send(data)
+	cbuf := unsafe.Pointer(&data[0])
+	clen := C.size_t(len(data))
+	o := C.zmq_send(s.c, cbuf, clen, 0)
+	if o > 0 {
+		return nil
+	}
+	return getError(o)
 }
 
 func (s *socket) Recv() ([]byte, error) {
-	return s.sck.Recv()
+	var msg C.zmq_msg_t
+	if i := C.zmq_msg_init(&msg); i != 0 {
+		return nil, getError(i)
+	}
+	defer C.zmq_msg_close(&msg)
+
+	size := C.zmq_msg_recv(&msg, s.c, 0)
+	if size < 0 {
+		return nil, getError(size)
+	}
+	if size == 0 {
+		return []byte{}, nil
+	}
+	data := make([]byte, int(size))
+	C.memcpy(unsafe.Pointer(&data[0]), C.zmq_msg_data(&msg), C.size_t(size))
+	err := getError(C.zmq_msg_close(&msg))
+	return data, err
 }
 
 func (s *socket) Listen(addr string) error {
-	_, err := gomq.BindServer(s.sck.(gomq.Server), addr)
-	return err
+	caddr := C.CString(addr)
+	v := C.zmq_bind(s.c, caddr)
+	C.free(unsafe.Pointer(caddr))
+	return getError(v)
 }
 
 func (s *socket) Dial(addr string) error {
-	return gomq.ConnectClient(s.sck.(gomq.Client), addr)
+	caddr := C.CString(addr)
+	v := C.zmq_connect(s.c, caddr)
+	C.free(unsafe.Pointer(caddr))
+	return getError(v)
 }
 
-type driver struct{}
+type driver struct {
+	ctx unsafe.Pointer
+}
 
-func (driver) NewSocket(typ oxyq.Type) (oxyq.Socket, error) {
+func (*driver) Name() string {
+	return "zeromq"
+}
+
+func (drv *driver) NewSocket(typ oxyq.SocketType) (oxyq.Socket, error) {
 	var (
-		sck gomq.ZeroMQSocket
-		err error
-		m   = zmtp.NewSecurityNull()
+		sck   socket
+		err   error
+		ctype C.int
 	)
 
 	switch typ {
-	case oxyq.Sub, oxyq.XSub:
-		panic("oxyq/zeromq: oxyq.Sub not yet implemented")
+	case oxyq.Sub:
+		ctype = C.ZMQ_SUB
 
-	case oxyq.Pub, oxyq.XPub:
-		panic("oxyq/zeromq: oxyq.Pub not yet implemented")
+	case oxyq.XSub:
+		ctype = C.ZMQ_XSUB
+
+	case oxyq.Pub:
+		ctype = C.ZMQ_PUB
+
+	case oxyq.XPub:
+		ctype = C.ZMQ_XPUB
 
 	case oxyq.Push:
-		sck = gomq.NewPush(m)
+		ctype = C.ZMQ_PUSH
 
 	case oxyq.Pull:
-		sck = gomq.NewPull(m)
+		ctype = C.ZMQ_PULL
 
-	case oxyq.Req, oxyq.Dealer:
-		sck = gomq.NewClient(m)
+	case oxyq.Req:
+		ctype = C.ZMQ_REQ
 
-	case oxyq.Rep, oxyq.Router:
-		sck = gomq.NewServer(m)
+	case oxyq.Dealer:
+		ctype = C.ZMQ_DEALER
+
+	case oxyq.Rep:
+		ctype = C.ZMQ_REP
+
+	case oxyq.Router:
+		ctype = C.ZMQ_ROUTER
 
 	case oxyq.Pair:
-		panic("oxyq/zeromq: oxyq.Pair not yet implemented")
+		ctype = C.ZMQ_PAIR
 
 	case oxyq.Bus:
-		panic("oxyq/zeromq: oxyq.Bus not yet implemented")
+		return nil, fmt.Errorf("oxyq/zeromq: oxyq.Bus not implemented")
 
 	default:
-		return nil, fmt.Errorf("oxyq/nanomsg: invalid socket type %v (%d)", typ, int(typ))
+		return nil, fmt.Errorf("oxyq/zeromq: invalid socket type %v (%d)", typ, int(typ))
 	}
 
-	if err != nil {
-		return nil, err
+	sck.c = C.zmq_socket(drv.ctx, ctype)
+
+	if sck.c == nil {
+		return nil, getError(1)
 	}
 
-	return &socket{sck: sck}, err
+	return &sck, err
 }
 
 func init() {
-	oxyq.Register("zeromq", driver{})
+	var drv driver
+	drv.ctx = C.zmq_ctx_new()
+	oxyq.Register("zeromq", &drv)
 }
