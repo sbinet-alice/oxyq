@@ -15,27 +15,27 @@ import (
 	_ "github.com/sbinet-alice/oxyq/mq/zeromq"
 )
 
-type Channel struct {
+type channel struct {
 	cfg config.Channel
 	sck mq.Socket
 	cmd chan CmdType
 	msg chan Msg
 }
 
-func (ch *Channel) Name() string {
+func (ch *channel) Name() string {
 	return ch.cfg.Name
 }
 
-func (ch *Channel) Send(data []byte) (int, error) {
+func (ch *channel) Send(data []byte) (int, error) {
 	err := ch.sck.Send(data)
 	return len(data), err
 }
 
-func (ch *Channel) Recv() ([]byte, error) {
+func (ch *channel) Recv() ([]byte, error) {
 	return ch.sck.Recv()
 }
 
-func (ch *Channel) run() {
+func (ch *channel) run() {
 	for {
 		select {
 		case msg := <-ch.msg:
@@ -53,7 +53,7 @@ func (ch *Channel) run() {
 	}
 }
 
-func (ch *Channel) recv() Msg {
+func (ch *channel) recv() Msg {
 	data, err := ch.Recv()
 	return Msg{
 		Data: data,
@@ -61,8 +61,8 @@ func (ch *Channel) recv() Msg {
 	}
 }
 
-func newChannel(drv mq.Driver, cfg config.Channel) (Channel, error) {
-	ch := Channel{
+func newChannel(drv mq.Driver, cfg config.Channel) (channel, error) {
+	ch := channel{
 		cmd: make(chan CmdType),
 		cfg: cfg,
 	}
@@ -81,7 +81,7 @@ func newChannel(drv mq.Driver, cfg config.Channel) (Channel, error) {
 
 type device struct {
 	name  string
-	chans map[string][]Channel
+	chans map[string][]channel
 	cmds  chan CmdType
 	msgs  map[msgAddr]chan Msg
 }
@@ -89,7 +89,7 @@ type device struct {
 func newDevice(drv mq.Driver, cfg config.Device) (*device, error) {
 	log.Printf("--- new device: %v\n", cfg)
 	dev := device{
-		chans: make(map[string][]Channel),
+		chans: make(map[string][]channel),
 		cmds:  make(chan CmdType),
 		msgs:  make(map[msgAddr]chan Msg),
 	}
@@ -101,7 +101,7 @@ func newDevice(drv mq.Driver, cfg config.Device) (*device, error) {
 			return nil, err
 		}
 		ch.msg = make(chan Msg)
-		dev.chans[opt.Name] = []Channel{ch}
+		dev.chans[opt.Name] = []channel{ch}
 		dev.msgs[msgAddr{name: opt.Name, id: 0}] = ch.msg
 	}
 	return &dev, nil
