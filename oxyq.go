@@ -8,27 +8,9 @@ package oxyq
 import (
 	"fmt"
 	"strings"
-	"sync"
+
+	"github.com/sbinet-alice/oxyq/mq"
 )
-
-// Socket is the main access handle that clients use to access the OxyQ system.
-type Socket interface {
-	// Close closes the open Socket
-	Close() error
-
-	// Send puts the message on the outbound send queue.
-	// Send blocks until the message can be queued or the send deadline expires.
-	Send(data []byte) error
-
-	// Recv receives a complete message.
-	Recv() ([]byte, error)
-
-	// Listen connects alocal endpoint to the Socket.
-	Listen(addr string) error
-
-	// Dial connects a remote endpoint to the Socket.
-	Dial(addr string) error
-}
 
 // CmdType describes commands to be sent to a device, via a channel.
 type CmdType byte
@@ -69,93 +51,32 @@ func (cmd CmdType) String() string {
 	panic(fmt.Errorf("oxyq: invalid CmdType value (command=%d)", int(cmd)))
 }
 
-// SocketType describes the type of a socket (PUB, SUP, PUSH, PULL, ...)
-type SocketType int
-
-const (
-	Invalid SocketType = iota
-	Sub
-	Pub
-	XSub
-	XPub
-	Push
-	Pull
-	Req
-	Rep
-	Dealer
-	Router
-	Pair
-	Bus
-)
-
-func socketType(name string) SocketType {
+func socketType(name string) mq.SocketType {
 	switch strings.ToLower(name) {
 	case "sub":
-		return Sub
+		return mq.Sub
 	case "pub":
-		return Pub
+		return mq.Pub
 	case "xpub":
-		return XPub
+		return mq.XPub
 	case "xsub":
-		return XSub
+		return mq.XSub
 	case "push":
-		return Push
+		return mq.Push
 	case "pull":
-		return Pull
+		return mq.Pull
 	case "req":
-		return Req
+		return mq.Req
 	case "rep":
-		return Rep
+		return mq.Rep
 	case "dealer":
-		return Dealer
+		return mq.Dealer
 	case "router":
-		return Router
+		return mq.Router
 	case "pair":
-		return Pair
+		return mq.Pair
 	case "bus":
-		return Bus
+		return mq.Bus
 	}
 	panic(fmt.Errorf("oxyq: invalid socket type name (value=%q)", name))
-}
-
-var drivers struct {
-	sync.RWMutex
-	db map[string]Driver
-}
-
-// Register registers a new OxyQ driver plugin
-func Register(name string, drv Driver) {
-	drivers.Lock()
-	defer drivers.Unlock()
-	if _, dup := drivers.db[name]; dup {
-		panic(fmt.Errorf("oxyq: driver with name %q already registered", name))
-	}
-	drivers.db[name] = drv
-}
-
-// Open returns a previously registered driver plugin
-//
-// e.g.
-//  zmq, err := oxyq.Open("zeromq")
-//  nn,  err := oxyq.Open("nanomsg")
-func Open(name string) (Driver, error) {
-	drivers.RLock()
-	defer drivers.RUnlock()
-	drv, ok := drivers.db[name]
-	if !ok {
-		return nil, fmt.Errorf("oxyq: no such driver %q", name)
-	}
-	return drv, nil
-}
-
-// Driver is an OxyQ plugin to create FairMQ-compatible message queue communications
-type Driver interface {
-	NewSocket(typ SocketType) (Socket, error)
-	Name() string
-}
-
-func init() {
-	drivers.Lock()
-	defer drivers.Unlock()
-	drivers.db = make(map[string]Driver)
 }

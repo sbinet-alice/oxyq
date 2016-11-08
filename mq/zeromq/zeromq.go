@@ -14,7 +14,7 @@ import (
 	"fmt"
 	"unsafe"
 
-	"github.com/sbinet-alice/oxyq"
+	"github.com/sbinet-alice/oxyq/mq"
 )
 
 func getError(v C.int) error {
@@ -86,7 +86,7 @@ func (*driver) Name() string {
 	return "zeromq"
 }
 
-func (drv *driver) NewSocket(typ oxyq.SocketType) (oxyq.Socket, error) {
+func (drv *driver) NewSocket(typ mq.SocketType) (mq.Socket, error) {
 	var (
 		sck   socket
 		err   error
@@ -94,44 +94,44 @@ func (drv *driver) NewSocket(typ oxyq.SocketType) (oxyq.Socket, error) {
 	)
 
 	switch typ {
-	case oxyq.Sub:
+	case mq.Sub:
 		ctype = C.ZMQ_SUB
 
-	case oxyq.XSub:
+	case mq.XSub:
 		ctype = C.ZMQ_XSUB
 
-	case oxyq.Pub:
+	case mq.Pub:
 		ctype = C.ZMQ_PUB
 
-	case oxyq.XPub:
+	case mq.XPub:
 		ctype = C.ZMQ_XPUB
 
-	case oxyq.Push:
+	case mq.Push:
 		ctype = C.ZMQ_PUSH
 
-	case oxyq.Pull:
+	case mq.Pull:
 		ctype = C.ZMQ_PULL
 
-	case oxyq.Req:
+	case mq.Req:
 		ctype = C.ZMQ_REQ
 
-	case oxyq.Dealer:
+	case mq.Dealer:
 		ctype = C.ZMQ_DEALER
 
-	case oxyq.Rep:
+	case mq.Rep:
 		ctype = C.ZMQ_REP
 
-	case oxyq.Router:
+	case mq.Router:
 		ctype = C.ZMQ_ROUTER
 
-	case oxyq.Pair:
+	case mq.Pair:
 		ctype = C.ZMQ_PAIR
 
-	case oxyq.Bus:
-		return nil, fmt.Errorf("oxyq/zeromq: oxyq.Bus not implemented")
+	case mq.Bus:
+		return nil, fmt.Errorf("mq/zeromq: oxyq.Bus not implemented")
 
 	default:
-		return nil, fmt.Errorf("oxyq/zeromq: invalid socket type %v (%d)", typ, int(typ))
+		return nil, fmt.Errorf("mq/zeromq: invalid socket type %v (%d)", typ, int(typ))
 	}
 
 	sck.c = C.zmq_socket(drv.ctx, ctype)
@@ -146,5 +146,5 @@ func (drv *driver) NewSocket(typ oxyq.SocketType) (oxyq.Socket, error) {
 func init() {
 	var drv driver
 	drv.ctx = C.zmq_ctx_new()
-	oxyq.Register("zeromq", &drv)
+	mq.Register("zeromq", &drv)
 }

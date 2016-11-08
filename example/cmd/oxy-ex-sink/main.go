@@ -9,7 +9,6 @@ import (
 
 	"github.com/sbinet-alice/oxyq"
 	"github.com/sbinet-alice/oxyq/config"
-	_ "github.com/sbinet-alice/oxyq/zeromq"
 )
 
 type Device struct {

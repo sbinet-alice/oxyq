@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/sbinet-alice/oxyq"
-	_ "github.com/sbinet-alice/oxyq/nanomsg"
-	_ "github.com/sbinet-alice/oxyq/zeromq"
+	"github.com/sbinet-alice/oxyq/mq"
+	_ "github.com/sbinet-alice/oxyq/mq/nanomsg"
+	_ "github.com/sbinet-alice/oxyq/mq/zeromq"
 )
 
 func TestPushPullNN(t *testing.T) {
@@ -19,17 +19,17 @@ func TestPushPullNN(t *testing.T) {
 		tmpl = "data-%02d"
 	)
 
-	drv, err := oxyq.Open("nanomsg")
+	drv, err := mq.Open("nanomsg")
 	if err != nil {
 		t.Fatal(err)
 	}
-	pull, err := drv.NewSocket(oxyq.Pull)
+	pull, err := drv.NewSocket(mq.Pull)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer pull.Close()
 
-	push, err := drv.NewSocket(oxyq.Push)
+	push, err := drv.NewSocket(mq.Push)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -77,17 +77,17 @@ func TestPushPullZMQ(t *testing.T) {
 		tmpl = "data-%02d"
 	)
 
-	drv, err := oxyq.Open("zeromq")
+	drv, err := mq.Open("zeromq")
 	if err != nil {
 		t.Fatal(err)
 	}
-	pull, err := drv.NewSocket(oxyq.Pull)
+	pull, err := drv.NewSocket(mq.Pull)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer pull.Close()
 
-	push, err := drv.NewSocket(oxyq.Push)
+	push, err := drv.NewSocket(mq.Push)
 	if err != nil {
 		t.Fatal(err)
 	}

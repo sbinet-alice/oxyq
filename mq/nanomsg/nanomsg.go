@@ -18,7 +18,7 @@ import (
 	"github.com/go-mangos/mangos/protocol/sub"
 	"github.com/go-mangos/mangos/transport/ipc"
 	"github.com/go-mangos/mangos/transport/tcp"
-	"github.com/sbinet-alice/oxyq"
+	"github.com/sbinet-alice/oxyq/mq"
 )
 
 type driver struct{}
@@ -27,26 +27,26 @@ func (driver) Name() string {
 	return "nanomsg"
 }
 
-func (driver) NewSocket(typ oxyq.SocketType) (oxyq.Socket, error) {
+func (driver) NewSocket(typ mq.SocketType) (mq.Socket, error) {
 	var sck mangos.Socket
 	var err error
 
 	switch typ {
-	case oxyq.Sub, oxyq.XSub:
+	case mq.Sub, mq.XSub:
 		sck, err = sub.NewSocket()
-	case oxyq.Pub, oxyq.XPub:
+	case mq.Pub, mq.XPub:
 		sck, err = pub.NewSocket()
-	case oxyq.Push:
+	case mq.Push:
 		sck, err = push.NewSocket()
-	case oxyq.Pull:
+	case mq.Pull:
 		sck, err = pull.NewSocket()
-	case oxyq.Req, oxyq.Dealer:
+	case mq.Req, mq.Dealer:
 		sck, err = req.NewSocket()
-	case oxyq.Rep, oxyq.Router:
+	case mq.Rep, mq.Router:
 		sck, err = rep.NewSocket()
-	case oxyq.Pair:
+	case mq.Pair:
 		sck, err = pair.NewSocket()
-	case oxyq.Bus:
+	case mq.Bus:
 		sck, err = bus.NewSocket()
 	default:
 		return nil, fmt.Errorf("oxyq/nanomsg: invalid socket type %v (%d)", typ, int(typ))
@@ -62,5 +62,5 @@ func (driver) NewSocket(typ oxyq.SocketType) (oxyq.Socket, error) {
 }
 
 func init() {
-	oxyq.Register("nanomsg", driver{})
+	mq.Register("nanomsg", driver{})
 }

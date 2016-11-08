@@ -10,11 +10,14 @@ import (
 	"strings"
 
 	"github.com/sbinet-alice/oxyq/config"
+	"github.com/sbinet-alice/oxyq/mq"
+	_ "github.com/sbinet-alice/oxyq/mq/nanomsg"
+	_ "github.com/sbinet-alice/oxyq/mq/zeromq"
 )
 
 type Channel struct {
 	cfg config.Channel
-	sck Socket
+	sck mq.Socket
 	cmd chan CmdType
 	msg chan Msg
 }
@@ -58,7 +61,7 @@ func (ch *Channel) recv() Msg {
 	}
 }
 
-func newChannel(drv Driver, cfg config.Channel) (Channel, error) {
+func newChannel(drv mq.Driver, cfg config.Channel) (Channel, error) {
 	ch := Channel{
 		cmd: make(chan CmdType),
 		cfg: cfg,
@@ -82,7 +85,7 @@ type device struct {
 	msgs  map[msgAddr]chan Msg
 }
 
-func newDevice(drv Driver, cfg config.Device) (*device, error) {
+func newDevice(drv mq.Driver, cfg config.Device) (*device, error) {
 	log.Printf("--- new device: %v\n", cfg)
 	dev := device{
 		chans: make(map[string][]Channel),
@@ -189,7 +192,7 @@ func Main(dev Device) error {
 		drvName = "zeromq"
 	}
 
-	drv, err := Open(drvName)
+	drv, err := mq.Open(drvName)
 	if err != nil {
 		return err
 	}
